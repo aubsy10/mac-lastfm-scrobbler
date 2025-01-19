@@ -1,23 +1,29 @@
 import tkinter as tk
-from token_generator import generate_token
-from sign_in import sign_in_handler
+import os
+from dotenv import load_dotenv
+from auth import sign_in_handler, generate_token, get_sig
 from album_scrobble import scrobble_album
 from track_scrobble import scrobble_track
+
+load_dotenv()
+API_KEY = os.getenv("API_KEY")
+
+session_key = None
 
 def create_home_screen():
     # Initialize the main window
     root = tk.Tk()
     root.title("Mac LastFm Scrobbler")
     
-    api_token = generate_token()
+    api_token = generate_token(API_KEY)
     
     print("Generated Token:", api_token)
 
     # Set window size to be a portion of the screen
     screen_width = root.winfo_screenwidth()  # Get screen width
     screen_height = root.winfo_screenheight()  # Get screen height
-    window_width = int(screen_width * 0.6)  # 60% of screen width
-    window_height = int(screen_height * 0.6)  # 60% of screen height
+    window_width = int(screen_width * 0.7)  # 60% of screen width
+    window_height = int(screen_height * 0.8)  # 60% of screen height
 
     # Center the window
     position_top = int(screen_height / 2 - window_height / 2)
@@ -72,10 +78,15 @@ def create_home_screen():
     track_album_name_label.pack(pady=5)
     track_album_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30)
     track_album_name_entry.pack(pady=5)
+    
+    track_artist_name_label = tk.Label(track_panel, text="Artist:", font=("Arial", 12))
+    track_artist_name_label.pack(pady=5)
+    track_artist_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30)
+    track_artist_name_entry.pack(pady=5)
 
     track_submit_button = tk.Button(
         track_panel, text="Scrobble Track", font=("Arial", 12), 
-        command=lambda: scrobble_track(track_name_entry.get(), track_album_name_entry.get())
+        command=lambda: scrobble_track(track_name_entry.get(), track_album_name_entry.get(), track_artist_name_entry.get(), API_KEY, api_token, session_key)
     )
     track_submit_button.pack(pady=10)
 
@@ -85,9 +96,10 @@ def create_home_screen():
     sign_in_button = tk.Button(
         root, text="Sign In to Last.fm", font=("Arial", 12), width=20, height=2, 
         bg="#E70010", fg="red", relief="flat", 
-        command=lambda: sign_in_handler(api_token=api_token)
+        command=lambda: sign_in_handler(API_KEY, api_token)
     )
     sign_in_button.pack(pady=15)
+    
 
     # Run the application
     root.mainloop()
