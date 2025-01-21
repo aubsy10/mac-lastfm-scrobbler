@@ -29,6 +29,12 @@ def scrobble_track(track_name, track_album_name, track_artist_name, api_key, api
         
         api_sig = get_sig(params)
         params["api_sig"] = api_sig
+        
+        response = requests.post("https://ws.audioscrobbler.com/2.0/", params=params)
+        print(response)
+        if response.status_code == 200:
+            print("scrobbled")
+
            
     else:
         print("Please fill in all track details.")

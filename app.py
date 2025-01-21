@@ -59,7 +59,7 @@ def create_home_screen():
 
     album_submit_button = tk.Button(
         album_panel, text="Scrobble Album", font=("Arial", 12), 
-        command=lambda: scrobble_album(album_name_entry.get(), artist_name_entry.get(), scrobble_option_var.get())
+        command=lambda: scrobble_album(album_name_entry.get(), artist_name_entry.get(), scrobble_option_var.get(), API_KEY, api_token, session_key)
     )
     album_submit_button.pack(pady=10)
 
