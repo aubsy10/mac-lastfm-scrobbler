@@ -2,13 +2,52 @@ import tkinter as tk
 import os
 from dotenv import load_dotenv
 from auth import sign_in_handler, generate_token, get_sig
-from album_scrobble import scrobble_album
+from album_scrobble import get_tracklist
 from track_scrobble import scrobble_track
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 
 session_key = None
+
+def show_track_menu(tracks, root):
+    track_window = tk.Toplevel(root)
+    track_window.title("Select Tracks")
+
+    tk.Label(track_window, text="Select Tracks to Scrobble", font=("Arial", 14)).pack(pady=5)
+
+    track_vars = []
+    for track in tracks:
+        var = tk.IntVar()
+        chk = tk.Checkbutton(track_window, text=track, variable=var)
+        chk.pack(anchor="w")
+        track_vars.append(var)
+
+    # Button to add more tracks
+    def add_track():
+        new_track = tk.Entry(track_window)
+        new_track.pack()
+        track_vars.append(new_track)
+
+    add_button = tk.Button(track_window, text="Add More Tracks", command=add_track)
+    add_button.pack(pady=5)
+
+    # Button to close the menu
+    close_button = tk.Button(track_window, text="Close", command=track_window.destroy)
+    close_button.pack(pady=5)
+
+def album_submit(album_name, artist_name, scrobble_option, api_token, root):
+    global session_key
+    result = get_tracklist(album_name, artist_name, scrobble_option, API_KEY, api_token, session_key)
+    
+    if result[0] == 0:  # Successful album validation
+        session_key = result[1]
+        tracks = result[2]
+        show_track_menu(tracks, root)
+    else:
+        session_key = result[1]
+        tk.messagebox.showerror("Error", "Album not found or invalid.")
+
 
 def create_home_screen():
     # Initialize the main window
@@ -59,7 +98,7 @@ def create_home_screen():
 
     album_submit_button = tk.Button(
         album_panel, text="Scrobble Album", font=("Arial", 12), 
-        command=lambda: scrobble_album(album_name_entry.get(), artist_name_entry.get(), scrobble_option_var.get(), API_KEY, api_token, session_key)
+        command=lambda: album_submit(album_name_entry.get(), artist_name_entry.get(), scrobble_option_var.get(), api_token, root)
     )
     album_submit_button.pack(pady=10)
 
@@ -86,7 +125,7 @@ def create_home_screen():
 
     track_submit_button = tk.Button(
         track_panel, text="Scrobble Track", font=("Arial", 12), 
-        command=lambda: scrobble_track(track_name_entry.get(), track_album_name_entry.get(), track_artist_name_entry.get(), API_KEY, api_token, session_key)
+        command=lambda: scrobble_track(track_name_entry.get(), track_album_name_entry.get(), track_artist_name_entry.get(), api_token)
     )
     track_submit_button.pack(pady=10)
 
