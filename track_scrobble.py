@@ -2,7 +2,7 @@ import time
 import requests
 from auth import get_sig, get_session_key
 
-def scrobble_track(track_name, track_album_name, track_artist_name, api_key, api_token, session_key):
+def scrobble_track(track_name, track_album_name, track_artist_name, timestamp, api_key, api_token, session_key):
     
     if track_name and track_album_name and track_artist_name:
         print(f"Scrobbling Track: {track_name} from {track_album_name}")
@@ -22,7 +22,7 @@ def scrobble_track(track_name, track_album_name, track_artist_name, api_key, api
             "method": "track.scrobble",
             "artist": track_artist_name, 
             "track": track_name,
-            "timestamp": int(time.time()),
+            "timestamp": int(timestamp),
             "album": track_album_name,
             "sk": session_key
         }

@@ -1,9 +1,10 @@
+import time
 import tkinter as tk
 import os
 from tkinter import ttk
 from dotenv import load_dotenv
 from auth import sign_in_handler, generate_token, get_sig
-from album_scrobble import get_tracklist
+from album_scrobble import get_tracklist, scrobble_album
 from track_scrobble import scrobble_track
 from tkinter import messagebox
 from tkcalendar import DateEntry
@@ -26,13 +27,15 @@ def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp):
     popup.place(relx=0.5, rely=0.5, anchor="center")
 
     tk.Label(
-        popup, text="Save Selected Tracks for Future Scrobbling?", font=("Helvetica", 14, "bold"),
+        popup, text="Save Selected Tracks?", font=("Helvetica", 14, "bold"),
         fg="#FFFFFF", bg="#1E1E1E"
     ).pack(pady=10)
 
     def save_tracks():
-        print(f"Saving tracks: {selected_tracks} for future scrobbling")
+        save_selected_tracks(selected_tracks, artist, album)
         close_menu()
+        show_scrobbling_menu(root, selected_tracks, artist, album, timestamp)
+        scrobble_album(selected_tracks, artist, album, timestamp, API_KEY, api_token, session_key)
 
     def close_menu():
         overlay.destroy()
@@ -42,14 +45,67 @@ def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp):
         font=("Helvetica", 12, "bold"), relief="flat", padx=10, pady=5, borderwidth=0,
         activebackground="#FF3B3B"
     )
-    save_button.pack(pady=(10, 5), fill="x")
+    save_button.pack(pady=(20, 5), fill="x")
 
-    skip_button = tk.Button(
-        popup, text="Skip", command=close_menu, bg="#FFFFFF", fg="#D1170D",
+    exit_button = tk.Button(
+        popup, text="Close", command=close_menu, bg="#FFFFFF", fg="#D1170D",
         font=("Helvetica", 12), relief="flat", padx=10, pady=5, borderwidth=0,
         activebackground="#D1170D"
     )
-    skip_button.pack(fill="x")
+    exit_button.pack(fill="x")
+
+CHAR_MAP = {
+    "/": "_SLASH_",
+    "\\": "_BACKSLASH_",
+    ":": "_COLON_",
+    "*": "_ASTERISK_",
+    "?": "_QUESTION_",
+    "\"": "_QUOTE_",
+    "<": "_LT_",
+    ">": "_GT_",
+    "|": "_PIPE_"
+}
+
+# Function to encode (sanitize) filenames
+def encode_filename(text):
+    for char, replacement in CHAR_MAP.items():
+        text = text.replace(char, replacement)
+    return text
+
+def decode_filename(text):
+    for char, replacement in CHAR_MAP.items():
+        text = text.replace(replacement, char)
+    return text
+
+def save_selected_tracks(selected_tracks, artist, album):
+    directory = "./saved_data/saved_albums"
+    os.makedirs(directory, exist_ok=True)
+    
+    encoded_album = encode_filename(album)
+    encoded_artist = encode_filename(artist)
+    
+    filename = f"{encoded_album}-{encoded_artist}.txt".replace(" ", "_")
+    filepath = os.path.join(directory, filename)
+    
+    with open(filepath, "w", encoding="utf-8") as file:
+        for track in selected_tracks:
+            file.write(track + "\n")
+
+def show_scrobbling_menu(root, selected_tracks, artist, album, timestamp):
+    overlay = tk.Frame(root, bg="#121212")
+    overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
+
+    popup = tk.Frame(
+        overlay, bg="#1E1E1E", padx=30, pady=30, relief="flat",
+        borderwidth=5, highlightbackground="#D1170D", highlightthickness=2
+    )
+    popup.place(relx=0.5, rely=0.5, anchor="center")
+
+    tk.Label(
+        popup, text="Scrobbling...", font=("Helvetica", 14, "bold"),
+        fg="#FFFFFF", bg="#1E1E1E"
+    ).pack(pady=10)
+
 
 def show_track_menu(tracks, root, artist, album, timestamp):
     overlay = tk.Frame(root, bg="#121212")
@@ -323,7 +379,7 @@ def create_home_screen():
 
     track_submit_button = tk.Button(
         track_panel, text="Scrobble Track", font=("Arial", 12), 
-        command=lambda: scrobble_track(track_name_entry.get(), track_album_name_entry.get(), track_artist_name_entry.get(), api_token)
+        command=lambda: scrobble_track(track_name_entry.get(), track_album_name_entry.get(), track_artist_name_entry.get(), int(time.time()), api_token)
     )
     track_submit_button.pack(pady=10)
 

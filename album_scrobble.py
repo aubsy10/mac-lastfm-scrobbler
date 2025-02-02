@@ -2,6 +2,7 @@ import requests
 import re
 import xml.etree.ElementTree as ET
 from auth import get_sig, get_session_key
+from track_scrobble import scrobble_track
 
 def get_tracklist(album_name, artist_name, api_key, api_token, session_key):
     if album_name and artist_name:
@@ -24,9 +25,7 @@ def get_tracklist(album_name, artist_name, api_key, api_token, session_key):
             return (1, session_key)
         
         #api_sig = get_sig(params)
-        #params["api_sig"] = api_sig
-        
-        
+        #params["api_sig"] = api_sig  
     else:
         print("Please fill in all album details.")
 
@@ -92,5 +91,9 @@ def get_album_info(album_name, artist_name, api_key):
         rettracks.append(track.text)
     
     return rettracks
-    
+
+def scrobble_album(selected_tracks, artist_name, album_name, timestamp, api_key, api_token, session_key):
+    print(f"scrobbling {selected_tracks} on {album_name} by {artist_name} at {timestamp}")
+    for track in selected_tracks:
+        scrobble_track(track, album_name, artist_name, timestamp, api_key, api_token, session_key)
     
