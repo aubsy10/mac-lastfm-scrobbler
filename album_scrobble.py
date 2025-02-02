@@ -3,9 +3,9 @@ import re
 import xml.etree.ElementTree as ET
 from auth import get_sig, get_session_key
 
-def get_tracklist(album_name, artist_name, scrobble_option, api_key, api_token, session_key):
+def get_tracklist(album_name, artist_name, api_key, api_token, session_key):
     if album_name and artist_name:
-        print(f"Scrobbling Album: {album_name} by {artist_name} ({scrobble_option})")
+        print(f"Scrobbling Album: {album_name} by {artist_name}")
         
         if session_key is None:
             params = {
@@ -22,11 +22,6 @@ def get_tracklist(album_name, artist_name, scrobble_option, api_key, api_token, 
             return(0,session_key, tracks)
         else:
             return (1, session_key)
-
-        
-    
-
-
         
         #api_sig = get_sig(params)
         #params["api_sig"] = api_sig
