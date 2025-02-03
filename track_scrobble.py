@@ -8,14 +8,7 @@ def scrobble_track(track_name, track_album_name, track_artist_name, timestamp, a
         print(f"Scrobbling Track: {track_name} from {track_album_name}")
         
         if session_key is None:
-            params = {
-                "api_key": api_key,
-                "method": "auth.getSession",
-                "token": api_token
-            }
-            sk_sig = get_sig(params)
-            session_key = get_session_key(api_key,api_token, sk_sig)
-        print(f"Skey: {session_key}")
+            session_key = get_session_key(api_key,api_token)
         
         params = {
             "api_key": api_key,
@@ -31,10 +24,6 @@ def scrobble_track(track_name, track_album_name, track_artist_name, timestamp, a
         params["api_sig"] = api_sig
         
         response = requests.post("https://ws.audioscrobbler.com/2.0/", params=params)
-        print(response)
-        if response.status_code == 200:
-            print("scrobbled")
-
-           
+                       
     else:
         print("Please fill in all track details.")

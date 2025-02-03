@@ -3,12 +3,15 @@ import tkinter as tk
 import os
 from tkinter import ttk
 from dotenv import load_dotenv
-from auth import sign_in_handler, generate_token, get_sig
-from album_scrobble import get_tracklist, scrobble_album
+from auth import sign_in, generate_token
 from track_scrobble import scrobble_track
 from tkinter import messagebox
 from tkcalendar import DateEntry
 from datetime import datetime
+from utils import decode_filename, get_timestamp
+from submit_menu import album_submit
+
+import tkinter as tk
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -16,280 +19,7 @@ API_KEY = os.getenv("API_KEY")
 session_key = None
 api_token = generate_token(API_KEY)
 
-def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp):
-    overlay = tk.Frame(root, bg="#121212")
-    overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-    popup = tk.Frame(
-        overlay, bg="#1E1E1E", padx=30, pady=30, relief="flat",
-        borderwidth=5, highlightbackground="#D1170D", highlightthickness=2
-    )
-    popup.place(relx=0.5, rely=0.5, anchor="center")
-
-    tk.Label(
-        popup, text="Save Selected Tracks?", font=("Helvetica", 14, "bold"),
-        fg="#FFFFFF", bg="#1E1E1E"
-    ).pack(pady=10)
-
-    def save_tracks():
-        save_selected_tracks(selected_tracks, artist, album)
-        close_menu()
-        show_scrobbling_menu(root, selected_tracks, artist, album, timestamp)
-        scrobble_album(selected_tracks, artist, album, timestamp, API_KEY, api_token, session_key)
-
-    def close_menu():
-        overlay.destroy()
-
-    save_button = tk.Button(
-        popup, text="Save", command=save_tracks, bg="#FFFFFF", fg="#D1170D",
-        font=("Helvetica", 12, "bold"), relief="flat", padx=10, pady=5, borderwidth=0,
-        activebackground="#FF3B3B"
-    )
-    save_button.pack(pady=(20, 5), fill="x")
-
-    exit_button = tk.Button(
-        popup, text="Close", command=close_menu, bg="#FFFFFF", fg="#D1170D",
-        font=("Helvetica", 12), relief="flat", padx=10, pady=5, borderwidth=0,
-        activebackground="#D1170D"
-    )
-    exit_button.pack(fill="x")
-
-CHAR_MAP = {
-    "/": "_SLASH_",
-    "\\": "_BACKSLASH_",
-    ":": "_COLON_",
-    "*": "_ASTERISK_",
-    "?": "_QUESTION_",
-    "\"": "_QUOTE_",
-    "<": "_LT_",
-    ">": "_GT_",
-    "|": "_PIPE_"
-}
-
-# Function to encode (sanitize) filenames
-def encode_filename(text):
-    for char, replacement in CHAR_MAP.items():
-        text = text.replace(char, replacement)
-    return text
-
-def decode_filename(text):
-    for char, replacement in CHAR_MAP.items():
-        text = text.replace(replacement, char)
-    return text
-
-def save_selected_tracks(selected_tracks, artist, album):
-    directory = "./saved_data/saved_albums"
-    os.makedirs(directory, exist_ok=True)
-    
-    encoded_album = encode_filename(album)
-    encoded_artist = encode_filename(artist)
-    
-    filename = f"{encoded_album}-{encoded_artist}.txt".replace(" ", "_")
-    filepath = os.path.join(directory, filename)
-    
-    with open(filepath, "w", encoding="utf-8") as file:
-        for track in selected_tracks:
-            file.write(track + "\n")
-
-def show_scrobbling_menu(root, selected_tracks, artist, album, timestamp):
-    overlay = tk.Frame(root, bg="#121212")
-    overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-    popup = tk.Frame(
-        overlay, bg="#1E1E1E", padx=30, pady=30, relief="flat",
-        borderwidth=5, highlightbackground="#D1170D", highlightthickness=2
-    )
-    popup.place(relx=0.5, rely=0.5, anchor="center")
-
-    tk.Label(
-        popup, text="Scrobbling...", font=("Helvetica", 14, "bold"),
-        fg="#FFFFFF", bg="#1E1E1E"
-    ).pack(pady=10)
-
-
-def show_track_menu(tracks, root, artist, album, timestamp):
-    overlay = tk.Frame(root, bg="#121212")
-    overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-    popup = tk.Frame(
-        overlay, bg="#1E1E1E", padx=30, pady=30, relief="flat",
-        borderwidth=5, highlightbackground="#D1170D", highlightthickness=2
-    )
-    popup.place(relx=0.5, rely=0.5, anchor="center")
-
-    tk.Label(
-        popup, text="Select Tracks to Scrobble", font=("Helvetica", 14, "bold"),
-        fg="#FFFFFF", bg="#1E1E1E"
-    ).pack(pady=10)
-
-    track_frame = tk.Frame(popup, bg="#1E1E1E", height=200)
-    track_frame.pack(fill="both", expand=True)
-
-    canvas = tk.Canvas(track_frame, bg="#1E1E1E", highlightthickness=0)
-    scrollbar = tk.Scrollbar(track_frame, orient="vertical", command=canvas.yview)
-    scrollable_frame = tk.Frame(canvas, bg="#1E1E1E")
-
-    scrollable_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
-
-    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-    canvas.configure(yscrollcommand=scrollbar.set)
-    
-    def on_mouse_wheel(event):
-        if event.delta > 0:
-            canvas.yview_scroll(-1, "units")  
-        else:
-            canvas.yview_scroll(1, "units")
-
-    canvas.bind_all("<MouseWheel>", on_mouse_wheel)
-
-    canvas.pack(side="left", fill="both", expand=True)
-    scrollbar.pack(side="right", fill="y")
-
-    checkboxes = {}  # Define checkboxes after creating track checkboxes
-
-    def track_selection_changed():
-            if any(data["var"].get() == False for data in checkboxes.values()):
-                select_all_var.set(False)
-            else:
-                select_all_var.set(True)
-
-    # Creating checkboxes for existing tracks
-    for track in tracks:
-        var = tk.BooleanVar()
-
-        row_frame = tk.Frame(scrollable_frame, bg="#1E1E1E")
-        row_frame.pack(fill="x", padx=10, pady=2, anchor="w")
-
-        track_label = tk.Label(
-            row_frame, text=track, font=("Helvetica", 12),
-            fg="#FFFFFF", bg="#1E1E1E", anchor="w"
-        )
-        track_label.pack(side="left", padx=5)
-
-        cb = tk.Checkbutton(
-            row_frame, variable=var, bg="#1E1E1E", activebackground="#D1170D",
-            selectcolor="#D1170D", fg="#FFFFFF"
-        )
-        cb.pack(side="right", padx=5)
-
-        remove_button = tk.Button(
-            row_frame, text="Remove", font=("Helvetica", 10),
-            background="#FFFFFF", foreground="#D1170D", relief="flat",
-            activebackground="#FFFFFF",
-            command=lambda track=track: remove_track(track)
-        )
-        remove_button.pack(side="right", padx=5)
-
-        checkboxes[track] = {"var": var, "checkbox": cb, "remove_button": remove_button, "row_frame": row_frame}
-
-        var.trace_add("write", lambda *args: track_selection_changed())
-
-    def add_track():
-        new_track = new_track_entry.get().strip()
-        if new_track and new_track not in checkboxes:
-            var = tk.BooleanVar()
-            row_frame = tk.Frame(scrollable_frame, bg="#1E1E1E")
-            row_frame.pack(fill="x", padx=10, pady=2, anchor="w")
-
-            track_label = tk.Label(
-                row_frame, text=new_track, font=("Helvetica", 12),
-                fg="#FFFFFF", bg="#1E1E1E", anchor="w"
-            )
-            track_label.pack(side="left", padx=5)
-
-            cb = tk.Checkbutton(
-                row_frame, variable=var, bg="#1E1E1E", activebackground="#D1170D",
-                selectcolor="#D1170D", fg="#FFFFFF"
-            )
-            cb.pack(side="right", padx=5)
-
-            remove_button = tk.Button(
-                row_frame, text="Remove", font=("Helvetica", 10),
-                background="#FFFFFF", foreground="#D1170D", relief="flat",
-                activebackground="#FFFFFF",
-                command=lambda track=new_track: remove_track(track)
-            )
-            remove_button.pack(side="right", padx=5)
-
-            checkboxes[new_track] = {"var": var, "checkbox": cb, "remove_button": remove_button, "row_frame": row_frame}
-            new_track_entry.delete(0, tk.END)
-
-            var.trace_add("write", lambda *args: track_selection_changed())  # Bind the new track checkbox to the selection change function
-
-    def remove_track(track):
-        if track in checkboxes:
-            checkboxes[track]["row_frame"].destroy()
-            del checkboxes[track]
-            
-    select_all_var = tk.BooleanVar()
-
-    def select_all_tracks():
-        value = select_all_var.get() 
-        for track, data in checkboxes.items():
-            data["var"].set(value)
-
-    select_all_cb = tk.Checkbutton(
-        popup, variable=select_all_var, text="Select All", font=("Helvetica", 12), 
-        bg="#1E1E1E", activebackground="#D1170D", selectcolor="#D1170D", fg="#FFFFFF",
-        command=select_all_tracks
-    )
-    select_all_cb.pack(pady=5)
-
-    new_track_entry = tk.Entry(popup, font=("Helvetica", 12), bg="#333333", fg="white", insertbackground="white")
-    new_track_entry.pack(pady=10, fill="x")
-    
-    add_button = tk.Button(
-    popup, text="Add Track", command=add_track, bg="#FFFFFF", fg="#D1170D",
-    font=("Helvetica", 12, "bold"), relief="flat", padx=10, pady=5, borderwidth=0,
-    activebackground="#FF3B3B"
-    )
-    add_button.pack(pady=(5, 10), fill="x")
-
-
-    def next_action():
-        selected_tracks = [track for track, data in checkboxes.items() if data["var"].get()]
-        print(f"Selected Tracks: {selected_tracks} by {artist} on {album} at {timestamp}")
-        show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp)
-
-    def close_menu():
-        overlay.destroy()
-
-    next_button = tk.Button(
-        popup, text="Next", command=next_action, bg="#FFFFFF", fg="#D1170D",
-        font=("Helvetica", 12, "bold"), relief="flat", padx=10, pady=5, borderwidth=0,
-        activebackground="#FF3B3B"
-    )
-    next_button.pack(pady=(20, 5), fill="x")
-
-    exit_button = tk.Button(
-        popup, text="Close", command=close_menu, bg="#FFFFFF", fg="#D1170D",
-        font=("Helvetica", 12), relief="flat", padx=10, pady=5, borderwidth=0,
-        activebackground="#D1170D"
-    )
-    exit_button.pack(fill="x")
-
-def album_submit(album_name, artist_name, timestamp, api_token, root):
-    global session_key
-    result = get_tracklist(album_name, artist_name, API_KEY, api_token, session_key)
-    
-    if result[0] == 0:  # Successful album validation
-        session_key = result[1]
-        tracks = result[2]
-        show_track_menu(tracks, root, artist_name, album_name, timestamp)
-    else:
-        session_key = result[1]
-        tk.messagebox.showerror("Error", "Album not found or invalid.")
-        
-
-def get_timestamp(date_entry, time_entry):
-    datetime_str = f"{date_entry} {time_entry}"
-    datetime_format = "%Y-%m-%d %H:%M:%S"
-    dt_object = datetime.strptime(datetime_str, datetime_format)
-    unix_timestamp = int(dt_object.timestamp()) 
-    return unix_timestamp
+after_id = None  # Define this at the start
 
 
 def create_home_screen():
@@ -300,7 +30,7 @@ def create_home_screen():
     for widget in root.winfo_children():
         widget.destroy()
     
-    
+    is_signed_in = False
     print("Generated Token:", api_token)
 
     # Set window size to be a portion of the screen
@@ -313,22 +43,109 @@ def create_home_screen():
     position_top = int(screen_height / 2 - window_height / 2)
     position_left = int(screen_width / 2 - window_width / 2)
     root.geometry(f"{window_width}x{window_height}+{position_left}+{position_top}")
+
+    def update_button_states():
+        global is_signed_in
+
+        album_filled = album_name_var.get().strip() and artist_name_var.get().strip()
+        track_filled = track_name_entry.get().strip() and track_album_name_entry.get().strip() and track_artist_name_entry.get().strip()
+        
+        album_submit_button.config(state=tk.NORMAL if album_filled and is_signed_in else tk.DISABLED)
+        track_submit_button.config(state=tk.NORMAL if track_filled and is_signed_in else tk.DISABLED)
     
     # ==============================
     # Panel for Album Scrobble
     # ==============================
+    
+    def load_saved_albums():
+        directory = "./saved_data/saved_albums"
+        albums_dict = {}  # {decoded_album_name: [decoded_artist1, decoded_artist2, ...]}
+
+        if not os.path.exists(directory):
+            return albums_dict
+
+        for filename in os.listdir(directory):
+            if filename.endswith(".txt"):
+                try:
+                    encoded_album, encoded_artist = filename.rsplit("-", 1)
+                    album = decode_filename(encoded_album.replace(".txt", "")).replace("_", " ")
+                    artist = decode_filename(encoded_artist.replace(".txt", "")).replace("_", " ")
+
+                    if album not in albums_dict:
+                        albums_dict[album] = []
+                    albums_dict[album].append(artist)
+                except ValueError:
+                    continue 
+
+        return albums_dict
+
+    saved_albums = load_saved_albums()
+
+    def delayed_update(*args):
+        global after_id
+        
+        # Cancel the previous scheduled update if any
+        if after_id is not None:
+            root.after_cancel(after_id)
+        
+        # Schedule the new update after 200ms (adjustable delay)
+        after_id = root.after(1000, on_album_entry_change)
+
+    def on_album_entry_change(*args):
+        typed_text = album_name_var.get().lower()
+
+        if typed_text:  # Only filter when text is entered
+            matching_albums = [album for album in saved_albums.keys() if typed_text in album.lower()]
+            album_dropdown["values"] = matching_albums
+
+            # Automatically open the dropdown if there are matches
+            if matching_albums:
+                album_dropdown.event_generate("<Down>")  # This simulates pressing the Down arrow to open the dropdown
+            else:
+                album_dropdown.event_generate("<Up>")  # If no matches, you might want to close or hide the dropdown
+        else:
+            album_dropdown["values"] = []  # Clear suggestions when empty
+            album_dropdown.event_generate("<Up>")  # Optionally close the dropdown when the field is empty
+
+
+
+    def on_album_selected(event):
+        selected_album = album_dropdown.get()  # Use the dropdown's selected value
+        if selected_album in saved_albums:
+            artists = saved_albums[selected_album]
+            if len(artists) == 1:
+                artist_name_var.set(artists[0])  # Autofill if only one artist
+            else:
+                artist_dropdown["values"] = artists  # Allow artist selection
+        else:
+            artist_name_var.set("")  # Clear if album is removed
+
+    def on_artist_selected(event):
+        selected_artist = artist_dropdown.get()
+        artist_name_var.set(selected_artist)
+
+    # Initialize the variables and UI components
+    album_name_var = tk.StringVar()
+    artist_name_var = tk.StringVar()
+
     album_panel = tk.LabelFrame(root, text="Scrobble Album", font=("Arial", 12, "bold"), padx=10, pady=10)
     album_panel.pack(padx=10, pady=10, fill="both", expand=True)
 
     album_name_label = tk.Label(album_panel, text="Album Name:", font=("Arial", 12))
     album_name_label.pack(pady=5)
-    album_name_entry = tk.Entry(album_panel, font=("Arial", 12), width=30)
-    album_name_entry.pack(pady=5)
+
+    album_dropdown = ttk.Combobox(album_panel, font=("Arial", 12), width=30, textvariable=album_name_var)
+    album_dropdown.pack(pady=5)
+    album_dropdown.bind("<<ComboboxSelected>>", on_album_selected)
+    album_name_var.trace_add("write", delayed_update)  # Trigger delayed update on text change
 
     artist_name_label = tk.Label(album_panel, text="Artist Name:", font=("Arial", 12))
     artist_name_label.pack(pady=5)
-    artist_name_entry = tk.Entry(album_panel, font=("Arial", 12), width=30)
-    artist_name_entry.pack(pady=5)
+
+    artist_dropdown = ttk.Combobox(album_panel, font=("Arial", 12), width=30, textvariable=artist_name_var)
+    artist_dropdown.pack(pady=5)
+    artist_dropdown.bind("<<ComboboxSelected>>", on_artist_selected)
+
     
     timestamp_label = tk.Label(album_panel, text="Timestamp (YYYY-MM-DD):", font=("Arial", 12))
     timestamp_label.pack(pady=5)
@@ -352,40 +169,62 @@ def create_home_screen():
 
     album_submit_button = tk.Button(
         album_panel, text="Scrobble Album", font=("Arial", 12), 
-        command=lambda: album_submit(album_name_entry.get(), artist_name_entry.get(), get_timestamp(timestamp_entry.get_date(), f"{hour_spinbox.get()}:{minute_spinbox.get()}:{second_spinbox.get()}"), api_token, root)
+        state=tk.DISABLED,
+        command=lambda: album_submit(root, album_name_var.get(), artist_name_var.get(), get_timestamp(timestamp_entry.get_date(), f"{hour_spinbox.get()}:{minute_spinbox.get()}:{second_spinbox.get()}"), api_token)
     )
     album_submit_button.pack(pady=10)
+    
+    album_name_var.trace_add("write", lambda *args: update_button_states())
+    artist_name_var.trace_add("write", lambda *args: update_button_states())
 
     # ==============================
     # Panel for Track Scrobble
     # ==============================
+    
+    track_name_var = tk.StringVar()
+    track_album_name_var = tk.StringVar()
+    track_artist_name_var = tk.StringVar()
+    
     track_panel = tk.LabelFrame(root, text="Scrobble Track", font=("Arial", 12, "bold"), padx=10, pady=10)
     track_panel.pack(padx=10, pady=10, fill="both", expand=True)
 
     track_name_label = tk.Label(track_panel, text="Track Name:", font=("Arial", 12))
     track_name_label.pack(pady=5)
-    track_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30)
+    track_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30, textvariable=track_name_var)
     track_name_entry.pack(pady=5)
 
     track_album_name_label = tk.Label(track_panel, text="Album Name:", font=("Arial", 12))
     track_album_name_label.pack(pady=5)
-    track_album_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30)
+    track_album_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30, textvariable=track_album_name_var)
     track_album_name_entry.pack(pady=5)
     
     track_artist_name_label = tk.Label(track_panel, text="Artist:", font=("Arial", 12))
     track_artist_name_label.pack(pady=5)
-    track_artist_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30)
+    track_artist_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30, textvariable=track_artist_name_var)
     track_artist_name_entry.pack(pady=5)
 
     track_submit_button = tk.Button(
         track_panel, text="Scrobble Track", font=("Arial", 12), 
-        command=lambda: scrobble_track(track_name_entry.get(), track_album_name_entry.get(), track_artist_name_entry.get(), int(time.time()), api_token)
+        state=tk.DISABLED,
+        command=lambda: scrobble_track(track_name_var.get(), track_album_name_var.get(), track_artist_name_var, int(time.time()), api_token)
     )
     track_submit_button.pack(pady=10)
-
+    
+    track_name_var.trace_add("write", lambda *args: update_button_states())
+    track_album_name_var.trace_add("write", lambda *args: update_button_states())
+    track_artist_name_var.trace_add("write", lambda *args: update_button_states())
+    
     # ==============================
-    # Last.fm Sign-In Button
+    # LASTFM Sign In Button
     # ==============================
+    
+    def sign_in_handler(API_KEY, api_token):
+        global is_signed_in 
+        is_signed_in = sign_in(API_KEY, api_token)
+        sign_in_button.config(bg="green", fg="white", text="Signed In")
+        update_button_states()
+        
+        
     sign_in_button = tk.Button(
         root, text="Sign In to Last.fm", font=("Arial", 12), width=20, height=2, 
         bg="#E70010", fg="red", relief="flat", 
