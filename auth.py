@@ -40,6 +40,7 @@ def get_session_key(api_key, api_token):
         "method": "auth.getSession",
         "token": api_token
     }
+    print(f"Params: {params}")
     api_sig = get_sig(params)
     url = f"https://ws.audioscrobbler.com/2.0/?method=auth.getSession&api_key={api_key}&token={api_token}&api_sig={api_sig}"
     response = requests.get(url)

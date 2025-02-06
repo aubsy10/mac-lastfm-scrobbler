@@ -3,30 +3,28 @@ from album_scrobble import get_tracklist
 from file_handler import check_saved_album
 from track_menu import show_track_menu
 
-def fetch_tracklist(root, album_name, artist_name, timestamp):
-    global API_KEY
-    global api_token
-    global session_key
+def fetch_tracklist(root, album_name, artist_name, timestamp, increment, API_KEY, api_token, session_key):
     
     result = get_tracklist(album_name, artist_name, API_KEY, api_token, session_key)
     if result[0] == 0:  # Successful album validation
         session_key = result[1]
         tracks = result[2]
-        show_track_menu(tracks, root, artist_name, album_name, timestamp)
+        show_track_menu(tracks, root, artist_name, album_name, timestamp, increment, API_KEY, api_token, session_key)
     else:
         session_key = result[1]
         tk.messagebox.showerror("Error", "Album not found or invalid.")
         
-def album_submit(root, album_name, artist_name, timestamp, api_token):
-    global session_key
+def album_submit(root, album_name, artist_name, timestamp, increment, api_key, api_token, session_key):
+    print(f"skey: {session_key}")
+    
     existing_tracks = check_saved_album(artist_name, album_name)
     
     if existing_tracks:
-        show_use_existing_data_menu(root, existing_tracks, artist_name, album_name, timestamp)
+        show_use_existing_data_menu(root, existing_tracks, artist_name, album_name, timestamp, increment, api_key, api_token, session_key)
     else:
-        fetch_tracklist(root, album_name, artist_name, timestamp)
+        fetch_tracklist(root, album_name, artist_name, timestamp, increment, api_key, api_token, session_key)
 
-def show_use_existing_data_menu(root, tracklist, artist, album, timestamp):
+def show_use_existing_data_menu(root, tracklist, artist, album, timestamp, increment, api_key, api_token, session_key):
     overlay = tk.Frame(root, bg="#121212")
     overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
 
@@ -42,11 +40,11 @@ def show_use_existing_data_menu(root, tracklist, artist, album, timestamp):
     ).pack(pady=10)
 
     def use_existing_data():
-        show_track_menu(tracklist, root, artist, album, timestamp)
+        show_track_menu(tracklist, root, artist, album, timestamp, increment, api_key, api_token, session_key)
         close_menu()
         
     def skip_existing_data():
-        fetch_tracklist(root, album, artist, timestamp)
+        fetch_tracklist(root, album, artist, timestamp, increment, api_key, api_token, session_key)
         close_menu()
         
     def close_menu():

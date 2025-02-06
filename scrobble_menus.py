@@ -2,7 +2,7 @@ import tkinter as tk
 from file_handler import save_selected_tracks
 from album_scrobble import scrobble_album
 
-def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp):
+def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp, increment, api_key, api_token, session_key):
     overlay = tk.Frame(root, bg="#121212")
     overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
 
@@ -18,17 +18,15 @@ def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp):
     ).pack(pady=10)
 
     def save_tracks():
-        global session_key
         save_selected_tracks(selected_tracks, artist, album)
         close_menu()
-        session_key = scrobble_album(selected_tracks, artist, album, timestamp, API_KEY, api_token, session_key)
+        new_session_key = scrobble_album(selected_tracks, artist, album, timestamp, increment, api_key, api_token, session_key)
         show_scrobbled_menu(root, selected_tracks, artist, album)
 
     def skip_save():
-        global session_key
         close_menu()
-        session_key = scrobble_album(selected_tracks, artist, album, timestamp, API_KEY, api_token, session_key)
-        show_scrobbled_menu(root, selected_tracks, artist, album)
+        new_session_key = scrobble_album(selected_tracks, artist, album, timestamp, increment, api_key, api_token, session_key)
+        show_scrobbled_menu(root, selected_tracks, artist, album, api_key, api_token, session_key)
     
     def close_menu():
         overlay.destroy()
@@ -55,7 +53,7 @@ def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp):
     exit_button.pack(fill="x")
 
             
-def show_scrobbled_menu(root, selected_tracks, artist, album):
+def show_scrobbled_menu(root, selected_tracks, artist, album, api_key, api_token, session_key):
     overlay = tk.Frame(root, bg="#121212")
     overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
 

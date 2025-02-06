@@ -1,7 +1,7 @@
 import tkinter as tk
 from scrobble_menus import show_save_scrobble_menu
 
-def show_track_menu(tracks, root, artist, album, timestamp):
+def show_track_menu(tracks, root, artist, album, timestamp, increment, api_key, api_token, session_key):
     overlay = tk.Frame(root, bg="#121212")
     overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
 
@@ -151,7 +151,7 @@ def show_track_menu(tracks, root, artist, album, timestamp):
 
     def next_action():
         selected_tracks = [track for track, data in checkboxes.items() if data["var"].get()]
-        show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp)
+        show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp, increment, api_key, api_token, session_key)
 
     def close_menu():
         overlay.destroy()

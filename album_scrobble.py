@@ -82,14 +82,17 @@ def get_album_info(album_name, artist_name, api_key):
     
     return rettracks
 
-def scrobble_album(selected_tracks, artist_name, album_name, timestamp, api_key, api_token, session_key):
+def scrobble_album(selected_tracks, artist_name, album_name, timestamp, increment, api_key, api_token, session_key):
     print(f"scrobbling {selected_tracks} on {album_name} by {artist_name} at {timestamp}")
     
     if session_key is None:
         session_key = get_session_key(api_key,api_token)
         
+    increment = float(increment) 
+        
     for track in selected_tracks:
         scrobble_track(track, album_name, artist_name, timestamp, api_key, api_token, session_key)
+        timestamp += increment*60
     
     return session_key
     

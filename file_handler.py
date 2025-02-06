@@ -1,6 +1,29 @@
 import os
 from utils import encode_filename
 
+
+TRACK_FILE = "./saved_data/saved_tracks.txt"
+
+
+def load_saved_tracks():
+    tracks = set()
+    if os.path.exists(TRACK_FILE):
+        with open(TRACK_FILE, "r", encoding="utf-8") as file:
+            for line in file:
+                parts = line.strip().split(" - ")
+                if len(parts) == 3:
+                    track_name, album_name, artist_name = parts
+                    tracks.add((track_name, album_name, artist_name))  
+    return tracks
+    
+def save_track(track_name, track_album_name, track_artist_name, saved_tracks):
+    track_tuple = (track_name, track_album_name, track_artist_name)
+    if track_tuple not in saved_tracks:
+        with open(TRACK_FILE, "a", encoding="utf-8") as file:
+            file.write(f"{track_name} - {track_album_name} - {track_artist_name}\n")
+        saved_tracks.add(track_tuple)
+        return saved_tracks
+
 def save_selected_tracks(selected_tracks, artist, album):
     directory = "./saved_data/saved_albums"
     os.makedirs(directory, exist_ok=True)
@@ -14,6 +37,10 @@ def save_selected_tracks(selected_tracks, artist, album):
     with open(filepath, "w", encoding="utf-8") as file:
         for track in selected_tracks:
             file.write(track + "\n")
+            
+    with open(TRACK_FILE, "a", encoding="utf-8") as file:
+        for track in selected_tracks:
+            file.write(f"{track} - {album} - {artist}\n")
             
             
 def check_saved_album(artist, album):
