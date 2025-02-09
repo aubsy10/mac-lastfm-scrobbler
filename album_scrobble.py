@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 from auth import get_session_key
 from track_scrobble import scrobble_track
 
+#Gets tracklist for an album using the Last.fm api
+
 def get_tracklist(album_name, artist_name, api_key, api_token, session_key):
     if album_name and artist_name:
         
@@ -21,6 +23,7 @@ def get_tracklist(album_name, artist_name, api_key, api_token, session_key):
     else:
         print("Please fill in all album details.")
 
+#Validates an album to make sure that the album the user is scrobbling actually exists
 def validate_album(album_name, artist_name, api_key):
     params = {
         "api_key": api_key,
@@ -53,6 +56,7 @@ def validate_album(album_name, artist_name, api_key):
     
     return False
 
+#Gets all of the info about the album, mainly used to fetch the tracklist from the api
 def get_album_info(album_name, artist_name, api_key):
     params = {
         "api_key": api_key,
@@ -82,8 +86,8 @@ def get_album_info(album_name, artist_name, api_key):
     
     return rettracks
 
+#Actually scrobbles the album for the user, goes through the list of tracks and scrobbles all of them for the user
 def scrobble_album(selected_tracks, artist_name, album_name, timestamp, increment, api_key, api_token, session_key):
-    print(f"scrobbling {selected_tracks} on {album_name} by {artist_name} at {timestamp}")
     
     if session_key is None:
         session_key = get_session_key(api_key,api_token)

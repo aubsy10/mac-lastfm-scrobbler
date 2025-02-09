@@ -12,7 +12,7 @@ from utils import decode_filename, get_timestamp
 from submit_menu import album_submit
 from file_handler import save_track, load_saved_tracks
 
-import tkinter as tk
+#Initialization
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
@@ -27,6 +27,7 @@ saved_tracks = []
 def create_home_screen():
     # Initialize the main window
     root = tk.Tk()
+    root.configure(bg="#121212")
     root.title("Mac LastFm Scrobbler")
     
     for widget in root.winfo_children():
@@ -47,6 +48,8 @@ def create_home_screen():
     position_top = int(screen_height / 2 - window_height / 2)
     position_left = int(screen_width / 2 - window_width / 2)
     root.geometry(f"{window_width}x{window_height}+{position_left}+{position_top}")
+    
+    #Ensure the buttons properly get filled
 
     def update_button_states():
         global is_signed_in
@@ -84,6 +87,8 @@ def create_home_screen():
         return albums_dict
 
     saved_albums = load_saved_albums()
+    
+    #Album panel functions
 
     def delayed_update(*args):
         global after_id
@@ -108,8 +113,6 @@ def create_home_screen():
             album_dropdown["values"] = [] 
             album_dropdown.event_generate("<Up>") 
 
-
-
     def on_album_selected(event):
         selected_album = album_dropdown.get()
         if selected_album in saved_albums:
@@ -125,28 +128,27 @@ def create_home_screen():
         selected_artist = artist_dropdown.get()
         artist_name_var.set(selected_artist)
         
-    
     def create_timestamp_section(parent, prefix):
-        timestamp_time_frame = tk.Frame(parent, bg="#222")
+        timestamp_time_frame = tk.Frame(parent, bg="#1E1E1E")
         timestamp_time_frame.pack(pady=5)
 
-        timestamp_label = tk.Label(timestamp_time_frame, text="Timestamp: ", font=("Arial", 12), fg="white", bg="#222")
+        timestamp_label = tk.Label(timestamp_time_frame, text="Timestamp: ", font=("Arial", 12), fg="white", bg="#1E1E1E")
         timestamp_label.pack(side="left", padx=5)
 
         timestamp_entry = DateEntry(timestamp_time_frame, font=("Arial", 12), width=12, background="#444", foreground="white")
         timestamp_entry.pack(side="left", padx=5)
 
-        time_label = tk.Label(timestamp_time_frame, text="Time: ", font=("Arial", 12), fg="white", bg="#222")
+        time_label = tk.Label(timestamp_time_frame, text="Time: ", font=("Arial", 12), fg="white", bg="#1E1E1E")
         time_label.pack(side="left", padx=5)
 
-        time_frame = tk.Frame(timestamp_time_frame, bg="#222")
+        time_frame = tk.Frame(timestamp_time_frame, bg="#1E1E1E")
         time_frame.pack(side="left")
 
         def create_time_spinbox(parent, label_text):
-            frame = tk.Frame(parent, bg="#222")
+            frame = tk.Frame(parent, bg="#1E1E1E")
             frame.pack(side="left", padx=5)
 
-            label = tk.Label(frame, text=label_text, font=("Arial", 10), fg="white", bg="#222", anchor="center")
+            label = tk.Label(frame, text=label_text, font=("Arial", 10), fg="white", bg="#1E1E1E", anchor="center")
             label.pack()
 
             spinbox = ttk.Spinbox(frame, from_=0, to=59 if label_text != "HH" else 23, width=3, font=("Arial", 12), wrap=True)
@@ -159,10 +161,10 @@ def create_home_screen():
         
         increment_entry = ""
         if(prefix == "album"):
-            increment_frame = tk.Frame(timestamp_time_frame, bg="#222")
+            increment_frame = tk.Frame(timestamp_time_frame, bg="#1E1E1E")
             increment_frame.pack(side="left", padx=10)
 
-            increment_label = tk.Label(increment_frame, text="Increment (minutes):", font=("Arial", 12), fg="white", bg="#222")
+            increment_label = tk.Label(increment_frame, text="Increment (minutes):", font=("Arial", 12), fg="white", bg="#1E1E1E")
             increment_label.pack(side="top", anchor="w")
 
             increment_entry = ttk.Entry(increment_frame, width=5, font=("Arial", 12))
@@ -177,16 +179,29 @@ def create_home_screen():
     album_name_var = tk.StringVar()
     artist_name_var = tk.StringVar()
 
-    album_panel = tk.LabelFrame(root, text="Scrobble Album", font=("Arial", 12, "bold"), padx=10, pady=10)
+    album_panel = tk.LabelFrame(
+    root, 
+    text="Scrobble Album", 
+    font=("Arial", 12, "bold"), 
+    bg="#1E1E1E", 
+    relief="solid",    
+    borderwidth=2,          
+    highlightbackground="#D1170D", 
+    highlightthickness=2,   
+    padx=10, pady=10
+    )
     album_panel.pack(padx=10, pady=10, fill="both", expand=True)
 
+    #Album Name
     album_name_label = tk.Label(album_panel, text="Album Name:", font=("Arial", 12))
     album_name_label.pack(pady=5)
 
     album_dropdown = ttk.Combobox(album_panel, font=("Arial", 12), width=30, textvariable=album_name_var)
     album_dropdown.pack(pady=5)
     album_dropdown.bind("<<ComboboxSelected>>", on_album_selected)
-    album_name_var.trace_add("write", delayed_update)  # Trigger delayed update on text change
+    album_name_var.trace_add("write", delayed_update)  
+    
+    #Artist Name
 
     artist_name_label = tk.Label(album_panel, text="Artist Name:", font=("Arial", 12))
     artist_name_label.pack(pady=5)
@@ -226,68 +241,125 @@ def create_home_screen():
     def on_track_entry_change(*args):
         typed_text = track_name_var.get().lower()
 
-        if typed_text: 
+        if typed_text:
             matching_tracks = [
-                track[0] for track in saved_tracks if typed_text in track[0].lower()
+                track for track in saved_tracks if typed_text in track[0].lower()
             ]
-            track_dropdown["values"] = matching_tracks
-            
+            track_dropdown["values"] = [track[0] for track in matching_tracks]  # Display track names
+
+            # Update the artist and album dropdowns based on the matching tracks
             if matching_tracks:
+                # Populate artist dropdown with unique artists
+                artists = {track[2] for track in matching_tracks}
+                track_artist_dropdown["values"] = list(artists)
+                track_artist_dropdown.set("")  # Clear artist selection
+
+                # Populate album dropdown with albums for each artist
+                albums_for_artist = {track[1] for track in matching_tracks if track[2] in artists}
+                track_album_dropdown["values"] = list(albums_for_artist)
+                track_album_dropdown.set("")  # Clear album selection
+
                 track_dropdown.event_generate("<Down>")
             else:
                 track_dropdown.event_generate("<Up>")
         else:
-            track_dropdown["values"] = [] 
-            track_dropdown.event_generate("<Up>")  
-
+            track_dropdown["values"] = []
+            track_dropdown.event_generate("<Up>")
 
     def on_track_selected(event):
-        selected_track = track_dropdown.get() 
+        selected_track = track_dropdown.get()
         if selected_track:
             matching_tracks = [track for track in saved_tracks if track[0] == selected_track]
-            if matching_tracks:
-                selected_track, album_name, artist_name = matching_tracks[0]
 
+            if len(matching_tracks) > 1:
+                track_artist_name_var.set("")  # Clear artist
+                track_album_name_var.set("")   # Clear album
+                track_artist_dropdown["values"] = []  # Clear artist options
+                track_album_dropdown["values"] = []   # Clear album options
+            else:
+                selected_track, album_name, artist_name = matching_tracks[0]
                 track_artist_name_var.set(artist_name)
                 track_album_name_var.set(album_name)
-            else:
-                track_artist_name_var.set("") 
-                track_album_name_var.set("") 
+
+                # Populate artist dropdown if multiple artists are found for this track
+                artists = [track[2] for track in matching_tracks]
+                track_artist_dropdown["values"] = list(set(artists))
+
+                # Populate album dropdown based on artist choice
+                albums_for_artist = {track[1] for track in matching_tracks if track[2] == artist_name}
+                track_album_dropdown["values"] = list(albums_for_artist)
+                track_album_dropdown.set(album_name)  # Default to the album of the first match
+
         else:
-            track_artist_name_var.set("") 
-            track_album_name_var.set("") 
+            track_artist_name_var.set("")
+            track_album_name_var.set("")
 
+    # Function to handle artist selection
+    def on_track_artist_selected(event):
+        selected_artist = track_artist_dropdown.get()
+        track_artist_name_var.set(selected_artist)
 
+        # Update album based on the selected artist
+        albums_for_artist = {track[1] for track in saved_tracks if track[2] == selected_artist}
+        track_album_dropdown["values"] = list(albums_for_artist)
+        track_album_dropdown.set(next(iter(albums_for_artist), ""))  # Default to first album
+
+    # Function to handle album selection
+    def on_track_album_selected(event):
+        selected_album = track_album_dropdown.get()
+        track_album_name_var.set(selected_album)
+
+        # Update artist dropdown based on selected album
+        artists_for_album = {track[2] for track in saved_tracks if track[1] == selected_album}
+        track_artist_dropdown["values"] = list(artists_for_album)
+        track_artist_dropdown.set(next(iter(artists_for_album), ""))  # Default to first artist
+
+    #PANEL CODE
     track_name_var = tk.StringVar()
     track_album_name_var = tk.StringVar()
     track_artist_name_var = tk.StringVar()
 
-    track_panel = tk.LabelFrame(root, text="Scrobble Track", font=("Arial", 12, "bold"), padx=10, pady=10)
+    track_panel = tk.LabelFrame(root, text="Scrobble Track", font=("Arial", 12, "bold"), bg="#1E1E1E",relief="flat",
+        borderwidth=5, highlightbackground="#D1170D",  padx=10, pady=10)
     track_panel.pack(padx=10, pady=10, fill="both", expand=True)
 
+    #Track Name
     track_name_label = tk.Label(track_panel, text="Track Name:", font=("Arial", 12))
     track_name_label.pack(pady=5)
-    track_dropdown = ttk.Combobox(track_panel, font=("Arial", 12), width=30, textvariable=track_name_var)
+    
+    track_dropdown = ttk.Combobox(track_panel, font=("Arial", 12), width=30,textvariable=track_name_var)
     track_dropdown.pack(pady=5)
     track_dropdown.bind("<<ComboboxSelected>>", on_track_selected)
-    track_name_var.trace_add("write", delayed_track_update)  # Trigger filtering on text change
+    
+    track_name_var.trace_add("write", delayed_track_update)  
+
+    #Track Album
 
     track_album_name_label = tk.Label(track_panel, text="Album Name:", font=("Arial", 12))
     track_album_name_label.pack(pady=5)
-    track_album_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30, textvariable=track_album_name_var)
-    track_album_name_entry.pack(pady=5)
+    
+    track_album_dropdown = ttk.Combobox(track_panel, font=("Arial", 12), width=30, textvariable=track_album_name_var)
+    track_album_dropdown.pack(pady=5)
+    track_album_dropdown.bind("<<ComboboxSelected>>", on_track_album_selected)
+    
+    #Track Artist
 
     track_artist_name_label = tk.Label(track_panel, text="Artist:", font=("Arial", 12))
     track_artist_name_label.pack(pady=5)
-    track_artist_name_entry = tk.Entry(track_panel, font=("Arial", 12), width=30, textvariable=track_artist_name_var)
-    track_artist_name_entry.pack(pady=5)
+    
+    track_artist_dropdown = ttk.Combobox(track_panel, font=("Arial", 12), width=30, textvariable=track_artist_name_var)
+    track_artist_dropdown.pack(pady=5)
+    track_artist_dropdown.bind("<<ComboboxSelected>>", on_track_artist_selected)
+    
+    #Save checkobox
 
     track_save_var = tk.BooleanVar()
-    track_save_check = tk.Checkbutton(track_panel, text="Save Track", variable=track_save_var)
+    track_save_check = tk.Checkbutton(track_panel, text="Save Track", variable=track_save_var, bg="#1E1E1E")
     track_save_check.pack(pady=5)
     
     track_timestamp_entry, track_hour_spinbox, track_minute_spinbox, track_second_spinbox, nothing = create_timestamp_section(track_panel, "track")
 
+    #Submit Button
     
     def handle_track_scrobble(track_name, track_album_name, track_artist_name, timestamp, track_save, api_key, api_token):
         global saved_tracks
@@ -310,8 +382,6 @@ def create_home_screen():
     track_name_var.trace_add("write", lambda *args: update_button_states())
     track_album_name_var.trace_add("write", lambda *args: update_button_states())
     track_artist_name_var.trace_add("write", lambda *args: update_button_states())
-    
-    
     
     # ==============================
     # LASTFM Sign In Button

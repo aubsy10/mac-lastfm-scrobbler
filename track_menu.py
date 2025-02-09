@@ -1,6 +1,7 @@
 import tkinter as tk
 from scrobble_menus import show_save_scrobble_menu
 
+#Menu that shows all of the tracks either fetched by the Last.fm api OR fetched from the file about an album
 def show_track_menu(tracks, root, artist, album, timestamp, increment, api_key, api_token, session_key):
     overlay = tk.Frame(root, bg="#121212")
     overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
@@ -31,6 +32,7 @@ def show_track_menu(tracks, root, artist, album, timestamp, increment, api_key, 
     canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
     canvas.configure(yscrollcommand=scrollbar_y.set)
     
+    #Used for easy scrolling
     def on_mouse_wheel(event):
         if event.delta > 0:
             canvas.yview_scroll(-1, "units")  
@@ -50,6 +52,7 @@ def show_track_menu(tracks, root, artist, album, timestamp, increment, api_key, 
 
     checkboxes = {}  # Define checkboxes after creating track checkboxes
 
+    #If a checkbox changes
     def track_selection_changed():
         if any(data["var"].get() == False for data in checkboxes.values()):
             select_all_var.set(False)
@@ -87,6 +90,7 @@ def show_track_menu(tracks, root, artist, album, timestamp, increment, api_key, 
 
         var.trace_add("write", lambda *args: track_selection_changed())
 
+    #To add a track to the list
     def add_track():
         new_track = new_track_entry.get().strip()
         if new_track and new_track not in checkboxes:
@@ -117,8 +121,9 @@ def show_track_menu(tracks, root, artist, album, timestamp, increment, api_key, 
             checkboxes[new_track] = {"var": var, "checkbox": cb, "remove_button": remove_button, "row_frame": row_frame}
             new_track_entry.delete(0, tk.END)
 
-            var.trace_add("write", lambda *args: track_selection_changed())  # Bind the new track checkbox to the selection change function
+            var.trace_add("write", lambda *args: track_selection_changed())
 
+    #Remove a track from the list
     def remove_track(track):
         if track in checkboxes:
             checkboxes[track]["row_frame"].destroy()
@@ -126,6 +131,7 @@ def show_track_menu(tracks, root, artist, album, timestamp, increment, api_key, 
             
     select_all_var = tk.BooleanVar()
 
+    #Select all tracks from the list using the checkbox
     def select_all_tracks():
         value = select_all_var.get() 
         for track, data in checkboxes.items():

@@ -2,6 +2,10 @@ import tkinter as tk
 from file_handler import save_selected_tracks
 from album_scrobble import scrobble_album
 
+#File has code which show the save scrobble menu and the scrobbled menu
+#The save scrobble menu asks the user if they'd like to save the tracks in the album to a file for future use
+#The scrobbled menu shows users which songs have been scrobbled successfully.
+
 def show_save_scrobble_menu(root, selected_tracks, artist, album, timestamp, increment, api_key, api_token, session_key):
     overlay = tk.Frame(root, bg="#121212")
     overlay.place(relx=0, rely=0, relwidth=1, relheight=1)

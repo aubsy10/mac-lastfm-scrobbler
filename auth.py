@@ -8,6 +8,8 @@ import xml.etree.ElementTree as ET
 load_dotenv()
 API_SECRET = os.getenv("API_SECRET")
 
+
+#Brings up the sign in window
 def sign_in(api_key, api_token):
     print(f"token: {api_token}")
     auth_url = f"http://www.last.fm/api/auth/?api_key={api_key}&token={api_token}"
@@ -15,6 +17,7 @@ def sign_in(api_key, api_token):
     webbrowser.open(auth_url)
     return True
 
+#Generates the session_token using the api
 def generate_token(api_key):
     url = f"https://ws.audioscrobbler.com/2.0/?method=auth.gettoken&api_key={api_key}"
     response = requests.get(url)
@@ -28,12 +31,14 @@ def generate_token(api_key):
         print("Error:", response.status_code)
         return None
 
+#Gets the signature for the api call that's required
 def get_sig(params):
     concatenated_string = "".join(f"{key}{value}" for key, value in sorted(params.items()))
     string_to_hash = concatenated_string + API_SECRET
     api_sig = hashlib.md5(string_to_hash.encode('utf-8')).hexdigest()
     return api_sig
 
+#Gets the session key, required for api actions that modify scrobbligng data
 def get_session_key(api_key, api_token):
     params = {
         "api_key": api_key,

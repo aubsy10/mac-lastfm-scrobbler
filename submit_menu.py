@@ -3,19 +3,20 @@ from album_scrobble import get_tracklist
 from file_handler import check_saved_album
 from track_menu import show_track_menu
 
+#Uses the Last.fm api to fetch the tracklist for an album
 def fetch_tracklist(root, album_name, artist_name, timestamp, increment, API_KEY, api_token, session_key):
     
     result = get_tracklist(album_name, artist_name, API_KEY, api_token, session_key)
-    if result[0] == 0:  # Successful album validation
+    if result[0] == 0:  
         session_key = result[1]
         tracks = result[2]
         show_track_menu(tracks, root, artist_name, album_name, timestamp, increment, API_KEY, api_token, session_key)
     else:
         session_key = result[1]
         tk.messagebox.showerror("Error", "Album not found or invalid.")
-        
+
+#Initial function used to handle the user choosing the scrobble an album 
 def album_submit(root, album_name, artist_name, timestamp, increment, api_key, api_token, session_key):
-    print(f"skey: {session_key}")
     
     existing_tracks = check_saved_album(artist_name, album_name)
     
@@ -24,6 +25,7 @@ def album_submit(root, album_name, artist_name, timestamp, increment, api_key, a
     else:
         fetch_tracklist(root, album_name, artist_name, timestamp, increment, api_key, api_token, session_key)
 
+#If existing data exists, this brings up the menu that asks the user if they want to use it
 def show_use_existing_data_menu(root, tracklist, artist, album, timestamp, increment, api_key, api_token, session_key):
     overlay = tk.Frame(root, bg="#121212")
     overlay.place(relx=0, rely=0, relwidth=1, relheight=1)

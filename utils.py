@@ -2,6 +2,8 @@
 from datetime import datetime
 import tkinter as tk
 
+#Utilities specifically relating to the filenames of the tracks and albums for the save data and getting the timestamp in the correct format
+
 CHAR_MAP = {
     "/": "_SLASH_",
     "\\": "_BACKSLASH_",
